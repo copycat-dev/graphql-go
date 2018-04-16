@@ -7,14 +7,14 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/graph-gophers/graphql-go/errors"
-	"github.com/graph-gophers/graphql-go/internal/common"
-	"github.com/graph-gophers/graphql-go/internal/exec/resolvable"
-	"github.com/graph-gophers/graphql-go/internal/exec/selected"
-	"github.com/graph-gophers/graphql-go/internal/query"
-	"github.com/graph-gophers/graphql-go/internal/schema"
-	"github.com/graph-gophers/graphql-go/log"
-	"github.com/graph-gophers/graphql-go/trace"
+	"github.com/oraiapp/graphql-go/errors"
+	"github.com/oraiapp/graphql-go/internal/common"
+	"github.com/oraiapp/graphql-go/internal/exec/resolvable"
+	"github.com/oraiapp/graphql-go/internal/exec/selected"
+	"github.com/oraiapp/graphql-go/internal/query"
+	"github.com/oraiapp/graphql-go/internal/schema"
+	"github.com/oraiapp/graphql-go/log"
+	"github.com/oraiapp/graphql-go/trace"
 )
 
 type Request struct {

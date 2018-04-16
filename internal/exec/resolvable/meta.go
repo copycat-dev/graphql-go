@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/graph-gophers/graphql-go/internal/common"
-	"github.com/graph-gophers/graphql-go/internal/schema"
-	"github.com/graph-gophers/graphql-go/introspection"
+	"github.com/oraiapp/graphql-go/internal/common"
+	"github.com/oraiapp/graphql-go/internal/schema"
+	"github.com/oraiapp/graphql-go/introspection"
 )
 
 var MetaSchema *Object
