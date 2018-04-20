@@ -61,7 +61,15 @@ func (r *Request) execSelections(ctx context.Context, sels []selected.Selection,
 	async := !serially && selected.HasAsyncSel(sels)
 
 	var fields []*fieldToExec
-	collectFieldsToResolve(sels, resolver, &fields, make(map[string]*fieldToExec))
+	fieldsByAlias := make(map[string]*fieldToExec)
+	collectFieldsToResolve(sels, resolver, &fields, fieldsByAlias)
+	/*for k, v := range fieldsByAlias {
+		fmt.Println("field: ", k)
+		fmt.Println("- field:", v.field)
+		fmt.Println("- selections:", v.sels)
+		fmt.Println("- resolver:", v.resolver)
+		//fmt.Println("- out:", string(v.out.Bytes())
+	}*/
 
 	if async {
 		var wg sync.WaitGroup
@@ -231,12 +239,61 @@ func (r *Request) execSelectionSet(ctx context.Context, sels []selected.Selectio
 
 	switch t := t.(type) {
 	case *common.List:
-		l := resolver.Len()
-
+		var l int
+		var entryouts []bytes.Buffer
 		if selected.HasAsyncSel(sels) {
 			var wg sync.WaitGroup
+
+			if resolver.Len() > 0 {
+				firstElement := resolver.Index(0)
+				firstElementType := firstElement.Type()
+				if _, ok := firstElementType.MethodByName("Next"); ok {
+					entryoutsHash := make(map[int]bytes.Buffer)
+					entryoutsMux := &sync.Mutex{}
+
+					var resolve func(element reflect.Value, i int)
+					resolve = func(element reflect.Value, i int) {
+
+						go func(el reflect.Value) {
+							defer wg.Done()
+							defer r.handlePanic(ctx)
+							var buf bytes.Buffer
+							r.execSelectionSet(ctx, sels, t.OfType,
+								&pathSegment{path, i}, el,
+								&buf)
+							entryoutsMux.Lock()
+							entryoutsHash[i] = buf
+							entryoutsMux.Unlock()
+						}(element)
+
+						nextElement := element.MethodByName("Next").Call(
+							[]reflect.Value{})[0]
+						if nextElement.IsNil() {
+							return
+						}
+
+						wg.Add(1)
+						go resolve(nextElement, i+1)
+					}
+
+					wg.Add(1)
+					go resolve(firstElement, 0)
+
+					wg.Wait()
+
+					l = len(entryoutsHash)
+					entryouts = make([]bytes.Buffer, l)
+					for i, v := range entryoutsHash {
+						entryouts[i] = v
+					}
+
+					goto end
+				}
+			}
+
+			l = resolver.Len()
 			wg.Add(l)
-			entryouts := make([]bytes.Buffer, l)
+			entryouts = make([]bytes.Buffer, l)
 			for i := 0; i < l; i++ {
 				go func(i int) {
 					defer wg.Done()
@@ -246,6 +303,7 @@ func (r *Request) execSelectionSet(ctx context.Context, sels []selected.Selectio
 			}
 			wg.Wait()
 
+		end:
 			out.WriteByte('[')
 			for i, entryout := range entryouts {
 				if i > 0 {
