@@ -82,6 +82,14 @@ func (r *Request) execSelections(ctx context.Context, sels []selected.Selection,
 				execFieldSelection(ctx, r, f, &pathSegment{path, f.field.Alias}, true)
 			}(f)
 		}
+		if done := resolver.MethodByName("Done"); done.IsValid() {
+			fieldNames := make([]string, len(fields))
+			for i, field := range fields {
+				fieldNames[i] = field.field.Name
+			}
+			fieldNamesVal := reflect.ValueOf(fieldNames)
+			done.Call([]reflect.Value{fieldNamesVal})
+		}
 		wg.Wait()
 	}
 
